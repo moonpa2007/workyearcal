@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>华为工龄计算器 · 在华为工作天数</title>
+<style>
+  :root {
+    --huawei-red: #CF0A2C;
+    --huawei-red-dark: #A00822;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1f2329;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    background: var(--card);
+    width: 100%;
+    max-width: 460px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    padding: 40px 36px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .logo-mark {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--huawei-red);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .logo-mark::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 20px; height: 20px;
+    transform: translate(-50%, -50%);
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2C7.6 2 4 5.6 4 10c0 2.2 1.2 4.4 3 6.1-.4 1.7-1.4 3.4-3 4.9l-.5.5c-.3.3-.1.8.3.8h16.4c.4 0 .6-.5.3-.8l-.5-.5c-1.6-1.5-2.6-3.2-3-4.9 1.8-1.7 3-3.9 3-6.1 0-4.4-3.6-8-8-8z"/></svg>');
+    background-size: contain;
+  }
+  .title { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  input[type="date"] {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type="date"]:focus {
+    border-color: var(--huawei-red);
+    box-shadow: 0 0 0 3px rgba(207,10,44,0.12);
+  }
+  button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--huawei-red);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .15s, transform .05s;
+  }
+  button:hover { background: var(--huawei-red-dark); }
+  button:active { transform: scale(0.99); }
+  .result {
+    display: none;
+    margin-top: 24px;
+    padding: 20px;
+    background: #fef2f4;
+    border: 1px solid #fbd5db;
+    border-radius: 14px;
+    text-align: center;
+  }
+  .result.show { display: block; }
+  .result .days {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--huawei-red);
+    line-height: 1;
+  }
+  .result .days-label { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .result .detail {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #4b5563;
+  }
+  .error {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .error.show { display: block; }
+  .footer { margin-top: 20px; font-size: 12px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      <div>
+        <div class="title">华为工龄计算器</div>
+      </div>
+    </div>
+    <p class="subtitle">输入你加入华为的日期，计算你已在华为工作的总天数</p>
+
+    <label for="joinDate">加入华为的日期（年月日）</label>
+    <input type="date" id="joinDate" max="">
+
+    <button id="calcBtn">计算工作天数</button>
+
+    <div class="error" id="error"></div>
+
+    <div class="result" id="result">
+      <div class="days" id="days">0</div>
+      <div class="days-label">天（含入职当日）</div>
+      <div class="detail" id="detail"></div>
+    </div>
+
+    <div class="footer">入职当日即计为第 1 天 · 数据仅在本地计算，不会上传</div>
+  </div>
+
+  <script>
+    (function () {
+      var joinInput = document.getElementById('joinDate');
+      var calcBtn = document.getElementById('calcBtn');
+      var resultBox = document.getElementById('result');
+      var daysEl = document.getElementById('days');
+      var detailEl = document.getElementById('detail');
+      var errorEl = document.getElementById('error');
+
+      // 限制加入日期不能晚于今天
+      var today = new Date();
+      var todayStr = toDateString(today);
+      joinInput.max = todayStr;
+
+      function toDateString(d) {
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+      }
+
+      function parseDate(str) {
+        var parts = str.split('-');
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      }
+
+      function calc() {
+        errorEl.classList.remove('show');
+        resultBox.classList.remove('show');
+
+        var val = joinInput.value;
+        if (!val) {
+          showError('请先选择加入华为的日期。');
+          return;
+        }
+
+        var join = parseDate(val);
+        var now = new Date();
+        // 只比较年月日，忽略时分秒
+        var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        if (join > todayMidnight) {
+          showError('加入日期不能晚于今天，请重新选择。');
+          return;
+        }
+
+        // 总天数 = 今天 - 入职日 + 1（入职当日计为第 1 天）
+        var msPerDay = 24 * 60 * 60 * 1000;
+        var days = Math.round((todayMidnight - join) / msPerDay) + 1;
+
+        // 拆解为 年 / 月 / 天（近似，按自然日估算）
+        var totalDays = days;
+        var years = 0, months = 0, remain = totalDays;
+        // 以入职日为起点，逐段计算整年、整月
+        var y = join.getFullYear();
+        var m = join.getMonth();
+        var d = join.getDate();
+        var ref = new Date(y, m, d);
+
+        function daysInMonth(yy, mm) { return new Date(yy, mm + 1, 0).getDate(); }
+
+        // 计算整年
+        while (true) {
+          var nextYear = new Date(y + years + 1, m, d);
+          if (nextYear <= todayMidnight) { years++; }
+          else break;
+        }
+        ref = new Date(y + years, m, d);
+        // 计算整月
+        while (true) {
+          var baseY = y + years;
+          var baseM = m + months;
+          var nextMonthFirst = new Date(baseY, baseM + 1, 1);
+          var cand = new Date(baseY, baseM + 1, d);
+          // 处理月末溢出
+          if (cand.getMonth() !== (baseM + 1) % 12) {
+            cand = new Date(baseY, baseM + 2, 0);
+          }
+          if (cand <= todayMidnight && months < 12) { months++; }
+          else break;
+        }
+        var afterMonths = new Date(y + years, m + months, d);
+        if (afterMonths.getMonth() !== (m + months) % 12) {
+          afterMonths = new Date(y + years, m + months + 1, 0);
+        }
+        var dayPart = Math.round((todayMidnight - afterMonths) / msPerDay) + 1;
+        // 若 dayPart 达到当月天数，进位为一个月
+        var maxDays = daysInMonth(todayMidnight.getFullYear(), todayMidnight.getMonth());
+        if (dayPart >= maxDays) {
+          dayPart = 0;
+          months++;
+          if (months >= 12) { years++; months = 0; }
+        }
+
+        daysEl.textContent = totalDays.toLocaleString('zh-CN');
+        var detailParts = [];
+        if (years > 0) detailParts.push(years + ' 年');
+        if (months > 0) detailParts.push(months + ' 个月');
+        if (dayPart > 0 || (years === 0 && months === 0)) detailParts.push(dayPart + ' 天');
+        detailEl.textContent = '约合 ' + detailParts.join(' ') +
+          '（自 ' + joinInput.value + ' 入职以来）';
+        resultBox.classList.add('show');
+      }
+
+      function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.classList.add('show');
+      }
+
+      calcBtn.addEventListener('click', calc);
+      joinInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') calc();
+      });
+    })();
+  </script>
+</body>
+</html>
